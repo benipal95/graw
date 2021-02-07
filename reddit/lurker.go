@@ -4,6 +4,7 @@ package reddit
 type Lurker interface {
 	// Thread returns a Reddit post with a fully parsed comment tree.
 	Thread(permalink string) (*Post, error)
+	ThreadComment(permalink string) (*Harvest, error)
 }
 
 type lurker struct {
@@ -28,4 +29,19 @@ func (s *lurker) Thread(permalink string) (*Post, error) {
 	}
 
 	return harvest.Posts[0], nil
+}
+
+func (s *lurker) ThreadComment(permalink string) (*Harvest, error) {
+	harvest, err := s.r.reap_comment(
+		permalink+".json",
+		map[string]string{"raw_json": "1"},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if len(harvest.Posts) != 1 {
+		return nil, ThreadDoesNotExistErr
+	}
+
+	return &harvest, nil
 }

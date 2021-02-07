@@ -45,6 +45,8 @@ type comment struct {
 type parser interface {
 	// parse parses any Reddit response and provides the elements in it.
 	parse(blob json.RawMessage) ([]*Comment, []*Post, []*Message, []*More, error)
+	parse_comment(blob json.RawMessage) ([]*Comment, []*More, error)
+	// parseNew(blob json.RawMessage) ([]*Comment, []*Post, []*Message, []*More, error)
 	parse_submitted(blob json.RawMessage) (Submission, error)
 }
 
@@ -67,7 +69,6 @@ func (p *parserImpl) parse(
 	if threadErr == nil {
 		return nil, []*Post{post}, nil, nil, nil
 	}
-
 	comments, mores, moreErr := parseMoreChildren(blob)
 	if moreErr == nil {
 		return comments, nil, nil, mores, nil
@@ -77,6 +78,19 @@ func (p *parserImpl) parse(
 		"failed to parse as listing [%v], thread [%v], or more [%v]",
 		listingErr, threadErr, moreErr,
 	)
+}
+
+// parse_comment parses any Reddit response and provides the elements in it.
+func (p *parserImpl) parse_comment(blob json.RawMessage) ([]*Comment, []*More, error) {
+	var activityListing []thing
+	if err := json.Unmarshal(blob, &activityListing); err != nil {
+		return nil, nil, err
+	}
+	comments, more, err := parseCommentsFromThing(&activityListing)
+	if err == nil {
+		return comments, more, nil
+	}
+	return nil, nil, err
 }
 
 // parse_submitted parses a response from reddit describing
@@ -325,4 +339,35 @@ func mapDecodeError(err error, val interface{}) error {
 		"failed to decode json map into struct: %v; value: %v",
 		err, val,
 	)
+}
+
+//parseCommentsFromThing parses a comment array from Thread
+func parseCommentsFromThing(t *[]thing) ([]*Comment, []*More, error) {
+	data := (*t)[1]
+	// var comment *Comment
+	// if err := json.Unmarshal(data.Data, &comment); err != nil {
+	// 	fmt.Println("errorrrrr")
+	// 	return nil, nil, err
+	// }
+	// fmt.Println(comment)
+	// type Data struct {
+	// 	children map[string]
+	// }
+	children := data.Data["data"]
+	if children != nil {
+		fmt.Println(children)
+	} else {
+		fmt.Println("EXISTS NOTTTTTTTTTTTTTTTTTTTT")
+
+	}
+	fmt.Printf("\n PARSECOMMENTS CALLED AGAIN ###################### \n")
+	// var listings [2]thing
+	// var comments []*Comment
+	// var more []*More
+	// comments, _, _, mores, err := parseListing(&listings[1])
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// return comments, more, nil
+	return nil, nil, nil
 }

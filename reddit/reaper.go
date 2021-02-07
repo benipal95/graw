@@ -1,6 +1,7 @@
 package reddit
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -33,6 +34,7 @@ type reaper interface {
 	// reap executes a GET request to Reddit and returns the elements from
 	// the endpoint.
 	reap(path string, values map[string]string) (Harvest, error)
+	reap_comment(path string, values map[string]string) (Harvest, error)
 	// sow executes a POST request to Reddit.
 	sow(path string, values map[string]string) error
 	// get_sow executes a POST request to Reddit
@@ -73,6 +75,7 @@ func (r *reaperImpl) reap(path string, values map[string]string) (Harvest, error
 		},
 	)
 	if err != nil {
+		fmt.Println("Error in reaper.go")
 		return Harvest{}, err
 	}
 
@@ -85,6 +88,26 @@ func (r *reaperImpl) reap(path string, values map[string]string) (Harvest, error
 	}, err
 }
 
+func (r *reaperImpl) reap_comment(path string, values map[string]string) (Harvest, error) {
+	r.rateBlock()
+	resp, err := r.cli.Do(
+		&http.Request{
+			Method: "GET",
+			URL:    r.url(r.path(path, r.reapSuffix), values),
+			Host:   r.hostname,
+		},
+	)
+	if err != nil {
+		fmt.Println("Error in reaper.go")
+		return Harvest{}, err
+	}
+
+	comments, mores, err := r.parser.parse_comment(resp)
+	return Harvest{
+		Comments: comments,
+		Mores:    mores,
+	}, err
+}
 func (r *reaperImpl) sow(path string, values map[string]string) error {
 	r.rateBlock()
 	_, err := r.cli.Do(
